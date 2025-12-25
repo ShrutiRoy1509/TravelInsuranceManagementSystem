@@ -11,6 +11,13 @@ namespace TravelInsuranceManagementSystem.Application.Controllers
             return View();
         }
 
+
+        public IActionResult Insuarance()
+        {
+            return View("Insuarance");
+        }
+
+
         public IActionResult Privacy()
         {
             return View();
