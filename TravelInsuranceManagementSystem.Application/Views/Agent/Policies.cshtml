@@ -1,4 +1,6 @@
-﻿@{
+﻿@model IEnumerable<TravelInsuranceManagementSystem.Application.Models.Policy>
+
+@{
     ViewData["Title"] = "Agent Policies";
     Layout = "~/Views/Shared/_AgentLayout.cshtml";
 }
@@ -28,11 +30,11 @@
             border-bottom: 1px solid #f1f5f9;
         }
 
-        /* Pill Badges for Payment Status */
+        /* Status & Payment Pill Badges */
         .pill-payment {
             display: inline-block;
             padding: 6px 16px;
-            border-radius: 50px; /* Full pill shape */
+            border-radius: 50px;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
@@ -40,6 +42,23 @@
             text-align: center;
         }
 
+        /* Policy Status Styles */
+        .status-active {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .status-expired {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        /* Payment Badge Colors */
         .pill-paid {
             background: #d4edda;
             color: #155724;
@@ -58,15 +77,6 @@
             border: 1px solid #f5c6cb;
         }
 
-        /* General Status Badges */
-        .badge-active {
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-
         .policy-id {
             font-weight: 700;
             color: #1e293b;
@@ -75,6 +85,10 @@
         .plan-type {
             font-weight: 600;
             color: #2563eb;
+        }
+
+        .text-navy {
+            color: #001f3d;
         }
     </style>
 }
@@ -88,7 +102,7 @@
     <div class="col-md-6">
         <div class="input-group search-box shadow-sm">
             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="policySearch" class="form-control border-start-0" placeholder="Search by Policy ID or Date...">
+            <input type="text" id="policySearch" class="form-control border-start-0" placeholder="Search by ID, Plan, or Destination...">
         </div>
     </div>
 </div>
@@ -100,6 +114,7 @@
                 <tr>
                     <th class="ps-4">Policy ID</th>
                     <th>Plan Name</th>
+                    <th>Destination</th>
                     <th>Premium Amount</th>
                     <th>Start Date</th>
                     <th>End Date</th>
@@ -108,39 +123,66 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td class="ps-4 policy-id">P-01842</td>
-                    <td class="plan-type">Silver Medical Plan</td>
-                    <td class="fw-bold">₹12,500</td>
-                    <td>2025-05-10</td>
-                    <td>2026-05-09</td>
-                    <td><span class="badge-active">Active</span></td>
-                    <td class="text-center">
-                        <span class="pill-payment pill-paid">Paid</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="ps-4 policy-id">P-02231</td>
-                    <td class="plan-type">Premium Travel Care</td>
-                    <td class="fw-bold">₹4,200</td>
-                    <td>2025-12-01</td>
-                    <td>2026-12-01</td>
-                    <td><span class="badge-active">Active</span></td>
-                    <td class="text-center">
-                        <span class="pill-payment pill-pending">Pending</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="ps-4 policy-id">P-00985</td>
-                    <td class="plan-type">Life Secure Plus</td>
-                    <td class="fw-bold">₹28,000</td>
-                    <td>2024-01-15</td>
-                    <td>2025-01-15</td>
-                    <td><span class="badge-active">Active</span></td>
-                    <td class="text-center">
-                        <span class="pill-payment pill-overdue">Overdue</span>
-                    </td>
-                </tr>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 policy-id">P-@item.PolicyId.ToString("D5")</td>
+                            <td class="plan-type">@item.CoverageType</td>
+                            <td>@item.DestinationCountry</td>
+                            <td class="fw-bold">₹@item.CoverageAmount.ToString("N0")</td>
+                            <td>@item.TravelStartDate.ToString("yyyy-MM-dd")</td>
+                            <td>@item.TravelEndDate.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                @{
+                                    // Handle logic for Status Badge styling
+                                    var statusClass = item.PolicyStatus switch
+                                    {
+                                        TravelInsuranceManagementSystem.Application.Models.PolicyStatus.ACTIVE => "status-active",
+                                        TravelInsuranceManagementSystem.Application.Models.PolicyStatus.EXPIRED => "status-expired",
+                                        TravelInsuranceManagementSystem.Application.Models.PolicyStatus.CANCELLED => "status-cancelled",
+                                        _ => "status-expired"
+                                    };
+                                }
+                                <span class="pill-payment @statusClass">@item.PolicyStatus</span>
+                            </td>
+                            <td class="text-center">
+                                @{
+                                    // Logic for Payment Status based on requested Enum values
+                                    var paymentClass = "pill-pending";
+                                    var paymentText = "Pending";
+
+                                    if (item.PolicyStatus == TravelInsuranceManagementSystem.Application.Models.PolicyStatus.ACTIVE)
+                                    {
+                                        paymentClass = "pill-paid";
+                                        paymentText = "Paid";
+                                    }
+                                    else if (item.PolicyStatus == TravelInsuranceManagementSystem.Application.Models.PolicyStatus.CANCELLED)
+                                    {
+                                        paymentClass = "pill-overdue";
+                                        paymentText = "Refunded";
+                                    }
+                                    else if (item.PolicyStatus == TravelInsuranceManagementSystem.Application.Models.PolicyStatus.EXPIRED)
+                                    {
+                                        paymentClass = "pill-overdue";
+                                        paymentText = "Closed";
+                                    }
+                                }
+                                <span class="pill-payment @paymentClass">@paymentText</span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                            No policies found in the system.
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
@@ -149,7 +191,7 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Search Logic
+            // Search Logic (Client-side filtering)
             $("#policySearch").on("keyup", function () {
                 var value = $(this).val().toLowerCase();
                 $("#policyTable tbody tr").filter(function () {

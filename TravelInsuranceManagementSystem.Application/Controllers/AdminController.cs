@@ -2,24 +2,42 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TravelInsuranceManagementSystem.Application.Data;
+using TravelInsuranceManagementSystem.Application.Models;
 
 namespace TravelInsuranceManagementSystem.Application.Controllers
 {
     [Authorize(Roles = "Admin")]
-    // This attribute prevents the "Back" button from showing admin data after logout
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class AdminController : Controller
     {
+        private readonly ApplicationDbContext _context;
+
+        // FIXED: Only one constructor allowed for Dependency Injection
+        public AdminController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
         public IActionResult Dashboard()
         {
             ViewData["Title"] = "Admin Dashboard";
             return View();
         }
 
-        public IActionResult Policies()
+        // READ OPERATION: Fetching real data from the database
+        public async Task<IActionResult> Policies()
         {
             ViewData["Title"] = "Policy Management";
-            return View();
+
+            // Get all policies and include family members to show "Customer Name"
+            var policies = await _context.Policies
+                .Include(p => p.Members)
+                .OrderByDescending(p => p.PolicyId)
+                .ToListAsync();
+
+            return View(policies);
         }
 
         public IActionResult Claims()
@@ -38,13 +56,8 @@ namespace TravelInsuranceManagementSystem.Application.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            // Clear the server-side authentication cookie
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Clear any session-specific data
             HttpContext.Session.Clear();
-
-            // Redirect back to the public Sign-In page
             return RedirectToAction("SignIn", "Home");
         }
     }

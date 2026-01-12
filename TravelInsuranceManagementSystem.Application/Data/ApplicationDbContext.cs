@@ -10,5 +10,14 @@ namespace TravelInsuranceManagementSystem.Application.Data
         {
         }
         public DbSet<User> Users { get; set; }
+        public DbSet<Policy> Policies { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // This ensures the Enum is stored as a String in the DB instead of an Integer
+            modelBuilder.Entity<Policy>()
+                .Property(p => p.PolicyStatus)
+                .HasConversion<string>();
+        }
     }
 }

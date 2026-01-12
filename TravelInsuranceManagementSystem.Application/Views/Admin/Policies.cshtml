@@ -1,100 +1,100 @@
-﻿@{
+﻿@model IEnumerable<TravelInsuranceManagementSystem.Application.Models.Policy>
+
+@{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    //ViewData["Title"] = "Policies";
+    ViewData["Title"] = "Admin Policies";
 }
 
-@* REMOVED: The d-flex container and the create policy button *@
-<h2 class="mb-3">Policies</h2>
+<h2 class="mb-3">Global Policy Management</h2>
 
-@* MODIFIED: Removed the Apply Filters button column and adjusted column sizes to col-lg-4 for better spacing *@
+@* Filter Section *@
 <div class="row g-2 mb-3">
     <div class="col-12 col-sm-6 col-lg-4">
         <select id="policyStatus" class="form-select">
             <option value="All">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Expired">Expired</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="ACTIVE">Active</option>
+            <option value="EXPIRED">Expired</option>
+            <option value="CANCELLED">Cancelled</option>
         </select>
     </div>
     <div class="col-12 col-sm-6 col-lg-4">
-        <select id="policyCountry" class="form-select">
-            <option value="All">Country</option>
-            <option>Italy</option>
-            <option>Japan</option>
-            <option>Spain</option>
-            <option>United Kingdom</option>
-            <option>Canada</option>
-        </select>
+        <input type="text" id="adminSearch" class="form-control" placeholder="Search by ID or Name...">
     </div>
-    <div class="col-12 col-sm-6 col-lg-4">
-        <select id="policyCoverage" class="form-select">
-            <option value="All">Coverage Type</option>
-            <option>Medical</option>
-            <option>Trip Cancellation</option>
-            <option>Lost Luggage</option>
-        </select>
-    </div>
-    @* REMOVED: The column containing the Apply Filters button *@
 </div>
 
 <div class="table-responsive">
-    <table id="policyTable" class="table table-hover align-middle mb-0">
+    <table id="policyTable" class="table table-hover align-middle mb-0 shadow-sm border">
         <thead class="table-light">
             <tr>
                 <th>Policy ID</th>
-                @* ADDED: New columns for Customer ID and Name *@
-                <th>Customer ID</th>
-                <th>Customer Name</th>
+                <th>Primary Member</th>
                 <th>Country</th>
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Plan</th>
-                <th>Policy Status</th>
-                @* REMOVED: Claim Status and Actions columns *@
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
-            @* MODIFIED ROWS: Added Customer data slots, removed Claim Status and Actions data slots *@
-            <tr data-status="active" data-country="italy" data-coverage="basic medical">
-                <td>P01042</td>
-                <td>CUST-101</td> @* Placeholder Data *@
-                <td>Mario Rossi</td> @* Placeholder Data *@
-                <td>Italy</td>
-                <td>2023-05-01</td>
-                <td>2023-05-15</td>
-                <td>Basic</td>
-                <td><span class="badge-pill badge-approved">Active</span></td>
-            </tr>
-            <tr data-status="expired" data-country="japan" data-coverage="premium trip cancellation">
-                <td>P01037</td>
-                <td>CUST-102</td> @* Placeholder Data *@
-                <td>Kenji Tanaka</td> @* Placeholder Data *@
-                <td>Japan</td>
-                <td>2023-08-10</td>
-                <td>2023-09-25</td>
-                <td>Premium</td>
-                <td><span class="badge-pill badge-pending">Expired</span></td>
-            </tr>
-            <tr data-status="active" data-country="united kingdom" data-coverage="premium medical">
-                <td>P01016</td>
-                <td>CUST-103</td> @* Placeholder Data *@
-                <td>Sarah Smith</td> @* Placeholder Data *@
-                <td>United Kingdom</td>
-                <td>2024-01-05</td>
-                <td>2024-01-14</td>
-                <td>Premium</td>
-                <td><span class="badge-pill badge-approved">Active</span></td>
-            </tr>
-            <tr data-status="cancelled" data-country="canada" data-coverage="basic medical">
-                <td>P00887</td>
-                <td>CUST-104</td> @* Placeholder Data *@
-                <td>Jean Tremblay</td> @* Placeholder Data *@
-                <td>Canada</td>
-                <td>2024-03-15</td>
-                <td>2024-04-05</td>
-                <td>Basic</td>
-                <td><span class="badge-pill badge-rejected">Cancelled</span></td>
-            </tr>
+            @if (Model != null && Model.Any())
+            {
+                @foreach (var item in Model)
+                {
+                    // Logic to find the Primary member (usually the first one added)
+                    var primaryMember = item.Members.FirstOrDefault();
+                    var customerName = primaryMember != null ? $"{primaryMember.FirstName} {primaryMember.LastName}" : "N/A";
+
+                    var statusBadge = item.PolicyStatus switch
+                    {
+                        TravelInsuranceManagementSystem.Application.Models.PolicyStatus.ACTIVE => "bg-success",
+                        TravelInsuranceManagementSystem.Application.Models.PolicyStatus.EXPIRED => "bg-secondary",
+                        TravelInsuranceManagementSystem.Application.Models.PolicyStatus.CANCELLED => "bg-danger",
+                        _ => "bg-info"
+                    };
+
+                    <tr>
+                        <td class="fw-bold">P-@item.PolicyId.ToString("D5")</td>
+                        <td>@customerName</td>
+                        <td>@item.DestinationCountry</td>
+                        <td>@item.TravelStartDate.ToString("yyyy-MM-dd")</td>
+                        <td>@item.TravelEndDate.ToString("yyyy-MM-dd")</td>
+                        <td><span class="badge bg-primary">@item.CoverageType</span></td>
+                        <td><span class="badge @statusBadge">@item.PolicyStatus</span></td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center py-4">No records found.</td>
+                </tr>
+            }
         </tbody>
     </table>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Live Search Logic
+            $("#adminSearch").on("keyup", function () {
+                var value = $(this).val().toLowerCase();
+                $("#policyTable tbody tr").filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+
+            // Status Filter Logic
+            $("#policyStatus").on("change", function () {
+                var value = $(this).val().toLowerCase();
+                if(value === "all") {
+                    $("#policyTable tbody tr").show();
+                } else {
+                    $("#policyTable tbody tr").filter(function () {
+                        $(this).toggle($(this).find('td:last').text().toLowerCase().trim() === value);
+                    });
+                }
+            });
+        });
+    </script>
+}

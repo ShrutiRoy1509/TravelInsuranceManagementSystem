@@ -224,9 +224,10 @@
 
 @section Scripts {
     <script>
+        // Updated endpoint to point to the CreateFamily action in InsuranceController
         const createEndpoint = '@Url.Action("CreateFamily", "Insurance")';
-        const adminReceiveEndpoint = '@Url.Action("Receive", "AdminInsurance")';
-        const userReceiveEndpoint = '@Url.Action("Receive", "UserInsurance")';
+        const successEndpoint = '@Url.Action("Success", "Insurance")';
+
         const membersContainer = document.getElementById('membersContainer');
         let memberCounter = 0;
 
@@ -275,7 +276,6 @@
             updateSummary();
         }
 
-        // Re-indexing logic for Model Binder compatibility
         membersContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-member-btn')) {
                 e.target.closest('.member-card').remove();
@@ -301,7 +301,8 @@
         function collectFormData() {
             const getVal = id => document.getElementById(id)?.value || '';
             const data = {
-                policy: {
+                // FIXED: Changed 'policy' to 'policyDetails' to match updated DTO
+                policyDetails: {
                     TripStart: getVal('TripStart'), TripEnd: getVal('TripEnd'),
                     Destination: getVal('Destination'), PlanType: getVal('PlanType'),
                     PrimaryEmail: getVal('PrimaryEmail'), PrimaryMobile: getVal('PrimaryMobile')
@@ -328,9 +329,10 @@
 
         function updateSummary() {
             const data = collectFormData();
+            // Using policyDetails here as well
             const lines = [
-                `<div class="summary-line"><b>Plan</b><span>${data.policy.PlanType || '-'}</span></div>`,
-                `<div class="summary-line"><b>Trip</b><span>${data.policy.TripStart} to ${data.policy.TripEnd}</span></div>`,
+                `<div class="summary-line"><b>Plan</b><span>${data.policyDetails.PlanType || '-'}</span></div>`,
+                `<div class="summary-line"><b>Trip</b><span>${data.policyDetails.TripStart} to ${data.policyDetails.TripEnd}</span></div>`,
                 `<div class="summary-line"><b>Members</b><span>${data.members.length}</span></div>`
             ];
             data.members.forEach((m, i) => {
@@ -339,12 +341,12 @@
             document.getElementById('summaryBody').innerHTML = lines.join('');
         }
 
-        // Event Delegation for live updates
         document.addEventListener('input', (e) => {
             if (e.target.id || e.target.classList.contains('field-watch')) updateSummary();
         });
 
         document.getElementById('addMemberBtn').addEventListener('click', addMember);
+
         document.getElementById('submitBtn').addEventListener('click', async (e) => {
             const data = collectFormData();
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -352,14 +354,27 @@
             try {
                 const res = await fetch(createEndpoint, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
                     body: JSON.stringify(data)
                 });
-                if(res.ok) alert("Success!"); else alert("Check form data.");
-            } catch (err) { alert("Error connecting to server."); }
+
+                if(res.ok) {
+                    const responseData = await res.json();
+                    // REDIRECT: Go to the success page with the new Policy ID
+                    window.location.href = `${successEndpoint}?id=${responseData.id}`;
+                } else {
+                    const errorMsg = await res.text();
+                    alert("Submission failed. Please check form details: " + errorMsg);
+                }
+            } catch (err) {
+                alert("Error connecting to server. Please try again.");
+            }
         });
 
-        // Init
+        // Initialize with one member
         addMember();
     </script>
 }
